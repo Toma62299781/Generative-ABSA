@@ -86,7 +86,7 @@ def get_dataset(tokenizer, type_path, args):
 class T5FineTuner(pl.LightningModule):
     def __init__(self, hparams):
         super(T5FineTuner, self).__init__()
-        self.hparams = hparams
+        self.save_hyperparameters(hparams)
 
         self.model = T5ForConditionalGeneration.from_pretrained(hparams.model_name_or_path)
         self.tokenizer = T5Tokenizer.from_pretrained(hparams.model_name_or_path)
@@ -229,7 +229,11 @@ def evaluate(data_loader, model, paradigm, task, sents):
 
         dec = [tokenizer.decode(ids, skip_special_tokens=True) for ids in outs]
         target = [tokenizer.decode(ids, skip_special_tokens=True) for ids in batch["target_ids"]]
-
+        # write the result to dec.txt
+        with open('dec.txt', 'a+', encoding='utf-8') as fp:
+            for d in dec:
+                fp.write(d + '\n')
+        
         outputs.extend(dec)
         targets.extend(target)
 
@@ -316,6 +320,10 @@ if args.do_eval:
                     paradigm=args.paradigm, task=args.task, max_len=args.max_seq_length)
     test_loader = DataLoader(test_dataset, batch_size=32, num_workers=4)
     
+    # load the dev and test sents, cause they seem to be used in evalute() function
+    dev_sents, _ = read_line_examples_from_file(f'data/{args.task}/{args.dataset}/dev.txt')
+    test_sents, _ = read_line_examples_from_file(f'data/{args.task}/{args.dataset}/test.txt')
+
     for checkpoint in all_checkpoints:
         epoch = checkpoint.split('=')[-1][:-5] if len(checkpoint) > 1 else ""
         # only perform evaluation at the specific epochs ("15-19")
@@ -329,7 +337,9 @@ if args.do_eval:
             model = T5FineTuner(model_ckpt['hyper_parameters'])
             model.load_state_dict(model_ckpt['state_dict'])
             
-            dev_result = evaluate(dev_loader, model, args.paradigm, args.task)
+            # evaluate会返回两个result，第一个是raw_score, 第二个是fixed_score
+            dev_result, _ = evaluate(dev_loader, model, args.paradigm, args.task, dev_sents)
+
             if dev_result['f1'] > best_f1:
                 best_f1 = dev_result['f1']
                 best_checkpoint = checkpoint
@@ -340,7 +350,7 @@ if args.do_eval:
             dev_result = dict((k + '_{}'.format(epoch), v) for k, v in dev_result.items())
             dev_results.update(dev_result)
 
-            test_result = evaluate(test_loader, model, args.paradigm, args.task)
+            test_result, _ = evaluate(test_loader, model, args.paradigm, args.task, test_sents)
             test_result = dict((k + '_{}'.format(epoch), v) for k, v in test_result.items())
             test_results.update(test_result)
 
@@ -368,6 +378,9 @@ if args.do_eval:
 # evaluation process
 if args.do_direct_eval:
     print("\n****** Conduct Evaluating with the last state ******")
+
+    # 下面三行被注释掉可能是有原因的，model = T5FineTuner(args)的声明方法是不对的
+    # 应该参考do_eval中的模型加载方法
 
     # model = T5FineTuner(args)
 

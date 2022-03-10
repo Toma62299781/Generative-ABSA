@@ -202,6 +202,7 @@ def get_transformed_io(data_path, paradigm, task):
     The main function to transform the Input & Output according to 
     the specified paradigm and task
     """
+    # read_line_examples_from_file返回的是List[List[word]], List[List[Tuple]]
     sents, labels = read_line_examples_from_file(data_path)
 
     # the input is just the raw sentence
@@ -277,6 +278,7 @@ class ABSADataset(Dataset):
                 if self.task != 'tasd':
                     target = ' '.join(targets[i]) 
                 else:
+                    # operation for 'tasd' task
                     target = targets[i]
             else:
                 target = targets[i]

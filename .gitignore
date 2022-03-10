@@ -1,0 +1,7 @@
+pretrained-models/
+results_log/
+outputs/
+__pycache__/
+
+run.sh.save
+dec.txt
