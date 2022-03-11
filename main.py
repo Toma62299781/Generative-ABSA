@@ -166,6 +166,9 @@ class T5FineTuner(pl.LightningModule):
 
     def _step(self, batch):
         lm_labels = batch["target_ids"]
+        # make sure the padding token id's of the labels are not 
+        # taken account by the loss function. This is done by replacing
+        # them with -100, which is the ignore_index of the CrossEntropyLoss
         lm_labels[lm_labels[:, :] == self.tokenizer.pad_token_id] = -100
 
         outputs = self(
