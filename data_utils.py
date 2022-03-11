@@ -240,6 +240,51 @@ def get_transformed_io(data_path, paradigm, task):
     return inputs, targets
 
 
+class MyDataset(Dataset):
+    def __init__(self, tokenizer, file_path, paradigm, task, max_len=128):
+        # 'data/aste/rest16/train.txt'
+        self.data_path = file_path
+        self.paradigm = paradigm
+        self.task = task
+        self.max_len = max_len
+        self.tokenizer = tokenizer
+        self.inputs = []
+        self.tokenized_inputs = []
+
+        self._build_dataset()
+
+    def __len__(self):
+        return len(self.tokenized_inputs)
+
+    def __getitem__(self, index):
+        source_ids = self.tokenized_inputs[index]["input_ids"].squeeze()
+
+        src_mask = self.tokenized_inputs[index]["attention_mask"].squeeze()      # might need to squeeze
+
+        return {"source_ids": source_ids, "source_mask": src_mask}
+
+    def _build_dataset(self):
+        with open(self.data_path, 'r', encoding='UTF-8') as fp:
+            for line in fp:
+                line = line.strip()
+                if line != '':
+                    self.inputs.append(line.split())
+        
+        for i in range(len(self.inputs)):
+
+            input = ' '.join(self.inputs[i]) 
+
+            tokenized_input = self.tokenizer.batch_encode_plus(
+              [input], max_length=self.max_len, pad_to_max_length=True, truncation=True,
+              return_tensors="pt",
+            )
+
+            self.tokenized_inputs.append(tokenized_input)
+
+    def get_inputs(self):
+        return self.inputs
+
+
 class ABSADataset(Dataset):
     def __init__(self, tokenizer, data_dir, data_type, paradigm, task, max_len=128):
         # 'data/aste/rest16/train.txt'
