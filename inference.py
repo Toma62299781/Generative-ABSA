@@ -196,39 +196,6 @@ class LoggingCallback(pl.Callback):
                     writer.write("{} = {}\n".format(key, str(metrics[key])))
 
 
-def evaluate(data_loader, model, paradigm, task, sents):
-    """
-    Compute scores given the predictions and gold labels
-    """
-    device = torch.device(f'cuda:{args.n_gpu}')
-    model.model.to(device)
-    
-    model.model.eval()
-    outputs, targets = [], []
-    for batch in tqdm(data_loader):
-        # need to push the data to device
-        outs = model.model.generate(input_ids=batch['source_ids'].to(device), 
-                                    attention_mask=batch['source_mask'].to(device), 
-                                    max_length=128)
-
-        dec = [tokenizer.decode(ids, skip_special_tokens=True) for ids in outs]
-        target = [tokenizer.decode(ids, skip_special_tokens=True) for ids in batch["target_ids"]]
-        # write the result to dec.txt
-        with open('dec.txt', 'a+', encoding='utf-8') as fp:
-            for d in dec:
-                fp.write(d + '\n')
-        
-        outputs.extend(dec)
-        targets.extend(target)
-
-    raw_scores, fixed_scores, all_labels, all_preds, all_preds_fixed = compute_scores(outputs, targets, sents, paradigm, task)
-    results = {'raw_scores': raw_scores, 'fixed_scores': fixed_scores, 'labels': all_labels,
-               'preds': all_preds, 'preds_fixed': all_preds_fixed}
-    # pickle.dump(results, open(f"{args.output_dir}/results-{args.task}-{args.dataset}-{args.paradigm}.pickle", 'wb'))
-
-    return raw_scores, fixed_scores
-
-
 if __name__ == "__main__":
     # initialization
     args = init_args()
