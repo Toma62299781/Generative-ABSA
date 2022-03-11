@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 python inference.py --task tasd \
-            --file_path ./inf.txt \
+            --file_path ./inf_example.txt \
             --model_name_or_path ./pretrained-models/t5-base \
             --paradigm annotation \
             --n_gpu 0 \
